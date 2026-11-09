@@ -1,0 +1,113 @@
+<section class="barra-titolo">
+  <div>
+    <h1>Dispositivi in rete</h1>
+    <p class="sottotitolo">
+      @if (stato(); as s) {
+        @if (s.inCorso) {
+          <span class="scansione-attiva">Scansione in corso…</span>
+        } @else if (s.errore) {
+          <span class="testo-errore">Ultima scansione non riuscita: {{ s.errore }}</span>
+        } @else if (s.fine) {
+          Ultima scansione {{ tempoTrascorso(s.fine, adesso()) }} · {{ s.indirizziControllati }} indirizzi controllati
+        }
+      } @else {
+        In attesa della prima scansione
+      }
+    </p>
+  </div>
+  <button type="button" class="pulsante pulsante-primario" (click)="scansiona()" [disabled]="stato()?.inCorso">
+    {{ stato()?.inCorso ? 'Scansione…' : 'Scansiona ora' }}
+  </button>
+</section>
+
+@if (errore()) {
+  <div class="avviso avviso-errore">{{ errore() }}</div>
+}
+
+@if (daVerificare() > 0) {
+  <div class="avviso avviso-attenzione">
+    <span>
+      <strong>{{ daVerificare() }} {{ daVerificare() === 1 ? 'dispositivo da verificare' : 'dispositivi da verificare' }}.</strong>
+      Apri ciascuno e segnalo come fidato se lo riconosci, così vedrai subito quelli nuovi.
+    </span>
+    <span class="azioni-avviso">
+      <button type="button" class="pulsante pulsante-secondario pulsante-piccolo" (click)="filtro.set('daVerificare')">Mostra</button>
+      <button type="button" class="pulsante pulsante-secondario pulsante-piccolo" (click)="segnaTuttiFidati()">Segna tutti come fidati</button>
+    </span>
+  </div>
+}
+
+<section class="riepilogo">
+  <button type="button" class="scheda-numero" [class.attiva]="filtro() === 'tutti'" (click)="filtro.set('tutti')">
+    <span class="numero">{{ totale() }}</span>
+    <span class="etichetta">Dispositivi conosciuti</span>
+  </button>
+  <button type="button" class="scheda-numero" [class.attiva]="filtro() === 'online'" (click)="filtro.set('online')">
+    <span class="numero numero-online">{{ accesi() }}</span>
+    <span class="etichetta">Accesi</span>
+  </button>
+  <button type="button" class="scheda-numero" [class.attiva]="filtro() === 'offline'" (click)="filtro.set('offline')">
+    <span class="numero numero-offline">{{ spenti() }}</span>
+    <span class="etichetta">Spenti o non raggiungibili</span>
+  </button>
+  <button type="button" class="scheda-numero" [class.attiva]="filtro() === 'daVerificare'" (click)="filtro.set('daVerificare')">
+    <span class="numero numero-attenzione">{{ daVerificare() }}</span>
+    <span class="etichetta">Da verificare</span>
+  </button>
+</section>
+
+<input
+  type="search"
+  class="campo-ricerca"
+  placeholder="Cerca per nome, IP, MAC, produttore o tipo"
+  [value]="ricerca()"
+  (input)="impostaRicerca($event)"
+/>
+
+@if (!caricato()) {
+  <p class="vuoto">Caricamento…</p>
+} @else if (filtrati().length === 0) {
+  <p class="vuoto">
+    @if (totale() === 0) {
+      Nessun dispositivo ancora: la prima scansione parte da sola pochi secondi dopo l'avvio del backend.
+    } @else {
+      Nessun dispositivo corrisponde ai filtri.
+    }
+  </p>
+} @else {
+  <ul class="elenco-dispositivi">
+    @for (d of filtrati(); track d.id) {
+      <li>
+        <a class="riga-dispositivo" [routerLink]="['/dispositivi', d.id]" [class.spento]="!d.online">
+          <span class="icona-categoria" [class.icona-spenta]="!d.online" aria-hidden="true">
+            {{ icona(d.categoria) }}
+            <span class="pallino pallino-su-icona" [class.pallino-online]="d.online"></span>
+          </span>
+          <span class="colonna-nome">
+            <span class="nome">
+              {{ d.nome }}
+              @if (d.questoComputer) { <span class="etichetta-piccola">questo PC</span> }
+              @if (!d.fidato) { <span class="etichetta-piccola etichetta-attenzione">da verificare</span> }
+            </span>
+            <span class="dettagli">
+              {{ d.produttore ?? (d.macCasuale ? 'MAC privato (casuale)' : 'Produttore sconosciuto') }}
+            </span>
+          </span>
+          <span class="colonna-indirizzi">
+            <span class="ip">{{ d.indirizzoIp }}</span>
+            <span class="mac">{{ d.indirizzoMac ?? 'MAC non disponibile' }}</span>
+          </span>
+          <span class="colonna-stato">
+            @if (d.online) {
+              <span class="stato-online">Acceso</span>
+              <span class="dettagli">{{ descriviMetodo(d.metodoRilevamento) }}</span>
+            } @else {
+              <span class="stato-offline">Spento</span>
+              <span class="dettagli">visto {{ tempoTrascorso(d.ultimaVolta, adesso()) }}</span>
+            }
+          </span>
+        </a>
+      </li>
+    }
+  </ul>
+}

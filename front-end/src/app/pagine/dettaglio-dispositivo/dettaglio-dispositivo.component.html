@@ -1,0 +1,134 @@
+<a routerLink="/" class="link-indietro">← Tutti i dispositivi</a>
+
+@if (errore()) {
+  <div class="avviso avviso-errore">{{ errore() }}</div>
+}
+
+@if (dispositivo(); as d) {
+  <section class="barra-titolo">
+    <div>
+      <h1>
+        <span class="icona-categoria icona-grande" [class.icona-spenta]="!d.online" aria-hidden="true">
+          {{ icona(d.categoria) }}
+          <span class="pallino pallino-su-icona" [class.pallino-online]="d.online"></span>
+        </span>
+        {{ d.nome }}
+      </h1>
+      <p class="sottotitolo">
+        {{ d.online ? 'Acceso' : 'Spento' }} · visto {{ tempoTrascorso(d.ultimaVolta) }}
+        @if (d.fidato) {
+          · <span class="stato-online">fidato</span>
+        } @else {
+          · <span class="testo-attenzione">da verificare</span>
+        }
+      </p>
+    </div>
+  </section>
+
+  @if (!d.fidato) {
+    <div class="avviso avviso-attenzione">
+      Riconosci questo dispositivo? Se sì, spunta "Lo conosco" qui sotto. Se non sai cos'è, il controllo delle porte
+      e il produttore possono aiutarti a capirlo.
+    </div>
+  }
+
+  <div class="griglia-dettaglio">
+    <section class="pannello">
+      <h2>Informazioni</h2>
+      <dl class="tabella-info">
+        <dt>Indirizzo IP</dt><dd>{{ d.indirizzoIp }}</dd>
+        <dt>MAC address</dt><dd>{{ d.indirizzoMac ?? '—' }}</dd>
+        <dt>Produttore</dt>
+        <dd>{{ d.produttore ?? (d.macCasuale ? 'MAC privato: il dispositivo nasconde il produttore' : '—') }}</dd>
+        <dt>Nome di rete</dt><dd>{{ d.nomeHost ?? '—' }}</dd>
+        <dt>Rilevato con</dt><dd>{{ d.metodoRilevamento ?? '—' }}</dd>
+        <dt>Prima volta</dt><dd>{{ d.primaVolta | date: 'dd/MM/yyyy HH:mm' }}</dd>
+        <dt>Ultima volta</dt><dd>{{ d.ultimaVolta | date: 'dd/MM/yyyy HH:mm' }}</dd>
+      </dl>
+    </section>
+
+    <section class="pannello">
+      <h2>Impostazioni</h2>
+      <form class="modulo-impostazioni" (ngSubmit)="salva()">
+        <label>
+          Nome
+          <input type="text" name="nome" maxlength="100" placeholder="es. TV salotto" [(ngModel)]="nuovoNome" />
+        </label>
+        <label>
+          Tipo di dispositivo
+          <select name="categoria" [(ngModel)]="nuovaCategoria">
+            @for (c of categorie; track c.valore) {
+              <option [value]="c.valore">{{ c.icona }} {{ c.etichetta }}</option>
+            }
+          </select>
+        </label>
+        <label class="casella">
+          <input type="checkbox" name="fidato" [(ngModel)]="nuovoFidato" />
+          Lo conosco: è un dispositivo fidato
+        </label>
+        <button type="submit" class="pulsante pulsante-primario">Salva</button>
+      </form>
+      <p class="aiuto">Lascia il nome vuoto per tornare a quello automatico.</p>
+      @if (messaggio()) {
+        <p class="aiuto">{{ messaggio() }}</p>
+      }
+    </section>
+  </div>
+
+  <section class="pannello">
+    <div class="intestazione-pannello">
+      <div>
+        <h2>Porte e servizi aperti</h2>
+        <p class="aiuto">
+          @if (d.porteControllateIl) {
+            Ultimo controllo {{ tempoTrascorso(d.porteControllateIl) }} su 27 porte comuni.
+          } @else {
+            Non ancora controllate. Il controllo prova 27 porte comuni e dura pochi secondi.
+          }
+        </p>
+      </div>
+      <button type="button" class="pulsante pulsante-secondario" (click)="controllaPorte()"
+              [disabled]="controlloPorteInCorso() || !d.online">
+        {{ controlloPorteInCorso() ? 'Controllo…' : 'Controlla porte' }}
+      </button>
+    </div>
+    @if (!d.online) {
+      <p class="aiuto">Il dispositivo è spento: il controllo è possibile solo quando è acceso.</p>
+    }
+    @if (d.porteControllateIl && porte().length === 0) {
+      <p class="vuoto">Nessuna porta aperta tra quelle controllate.</p>
+    } @else if (porte().length > 0) {
+      <ul class="elenco-porte">
+        @for (p of porte(); track p.porta) {
+          <li>
+            <span class="numero-porta">{{ p.porta }}</span>
+            <span>{{ p.servizio }}</span>
+          </li>
+        }
+      </ul>
+    }
+  </section>
+
+  <section class="pannello">
+    <h2>Storico accensioni</h2>
+    @if (eventi().length === 0) {
+      <p class="vuoto">Nessun evento registrato.</p>
+    } @else {
+      <ol class="storico">
+        @for (e of eventi(); track e.id) {
+          <li>
+            <span class="pallino" [class.pallino-online]="e.stato === 'ONLINE'"></span>
+            <span class="storico-stato">{{ e.stato === 'ONLINE' ? 'Si è acceso' : 'Si è spento' }}</span>
+            <span class="storico-data">{{ e.istante | date: 'EEE dd/MM/yyyy HH:mm' }}</span>
+          </li>
+        }
+      </ol>
+    }
+  </section>
+
+  <section class="pannello pannello-pericolo">
+    <h2 class="titolo-pericolo">Elimina</h2>
+    <p class="aiuto">Rimuove il dispositivo, le sue porte e il suo storico dall'elenco.</p>
+    <button type="button" class="pulsante pulsante-pericolo" (click)="elimina()">Elimina dispositivo</button>
+  </section>
+}

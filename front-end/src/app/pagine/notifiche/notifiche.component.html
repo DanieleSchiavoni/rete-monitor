@@ -1,0 +1,32 @@
+<section class="barra-titolo">
+  <div>
+    <h1>Notifiche</h1>
+    <p class="sottotitolo">Avvisi sui dispositivi comparsi in rete per la prima volta.</p>
+  </div>
+  @if (haNonLette()) {
+    <button type="button" class="pulsante pulsante-secondario" (click)="segnaTutteLette()">Segna tutte come lette</button>
+  }
+</section>
+
+@if (!caricato()) {
+  <p class="vuoto">Caricamento…</p>
+} @else if (notifiche().length === 0) {
+  <p class="vuoto">Nessuna notifica. Quando un dispositivo nuovo entra nella rete lo vedrai qui.</p>
+} @else {
+  <ul class="elenco-notifiche">
+    @for (n of notifiche(); track n.id) {
+      <li>
+        <button type="button" class="riga-notifica" [class.non-letta]="!n.letta" (click)="apri(n)">
+          <span class="icona-notifica" aria-hidden="true">{{ n.tipo === 'NUOVO_DISPOSITIVO' ? '🆕' : '📋' }}</span>
+          <span class="testo-notifica">
+            <span class="messaggio-notifica">{{ n.messaggio }}</span>
+            <span class="dettagli">{{ n.creataIl | date: 'EEE dd/MM/yyyy HH:mm' }}</span>
+          </span>
+          @if (!n.letta) {
+            <span class="pallino-notifica" aria-label="non letta"></span>
+          }
+        </button>
+      </li>
+    }
+  </ul>
+}
